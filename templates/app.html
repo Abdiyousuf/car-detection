@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Detection Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { height: 100vh; overflow: hidden; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 flex flex-col p-4 md:p-8">
+
+<header class="mb-6 flex-none">
+    <h1 class="text-2xl font-bold tracking-tight text-indigo-400">Car Detection Preview</h1>
+    <p class="text-slate-400 text-sm">Upload an image to run YOLOv8 detection.</p>
+</header>
+
+<main class="flex-1 flex flex-col md:flex-row gap-6 min-h-0">
+
+<section class="flex-1 flex flex-col bg-slate-800 rounded-xl border border-slate-700 p-6">
+    <h2 class="text-lg font-semibold mb-4">Input Image</h2>
+
+    <div id="dropzone" class="flex-1 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer">
+        <p class="text-slate-400">Click to upload image</p>
+        <input type="file" id="fileInput" class="hidden" accept="image/*">
+    </div>
+
+    <button id="runBtn" class="mt-4 bg-indigo-600 py-3 rounded-lg font-medium">
+        Run Detection
+    </button>
+</section>
+
+<section class="flex-1 flex flex-col bg-slate-800 rounded-xl border border-slate-700 p-6">
+    <h2 class="text-lg font-semibold mb-4">Detection Result</h2>
+
+    <div class="flex-1 bg-black rounded-lg flex items-center justify-center relative">
+        <img id="preview" class="hidden max-w-full max-h-full object-contain">
+        <span id="placeholder" class="text-slate-500">Results will appear here</span>
+    </div>
+
+    <div class="mt-4 grid grid-cols-2 gap-4">
+        <div class="bg-slate-900 p-3 rounded">
+            <p class="text-xs text-slate-500">Confidence</p>
+            <p id="confScore" class="text-emerald-400 font-mono">--%</p>
+        </div>
+        <div class="bg-slate-900 p-3 rounded">
+            <p class="text-xs text-slate-500">Objects</p>
+            <p id="objCount" class="text-indigo-400 font-mono">0</p>
+        </div>
+    </div>
+</section>
+
+</main>
+
+<script>
+const fileInput = document.getElementById("fileInput");
+const dropzone = document.getElementById("dropzone");
+const runBtn = document.getElementById("runBtn");
+const preview = document.getElementById("preview");
+const placeholder = document.getElementById("placeholder");
+const confScore = document.getElementById("confScore");
+const objCount = document.getElementById("objCount");
+
+let selectedFile = null;
+
+dropzone.onclick = () => fileInput.click();
+
+fileInput.onchange = (e) => {
+    selectedFile = e.target.files[0];
+};
+
+runBtn.onclick = async () => {
+    if (!selectedFile) return alert("Please select an image");
+
+    placeholder.innerText = "Processing...";
+    preview.classList.add("hidden");
+    placeholder.classList.remove("hidden");
+
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
+    const res = await fetch("http://127.0.0.1:5000/detect", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    preview.src = `http://127.0.0.1:5000/image?path=${data.image_path}`;
+    preview.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+
+    confScore.innerText = data.confidence + "%";
+    objCount.innerText = data.count;
+};
+</script>
+
+</body>
+</html>
