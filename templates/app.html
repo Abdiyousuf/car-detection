@@ -21,8 +21,9 @@
     <section class="bg-slate-800 rounded-xl p-6 flex flex-col">
         <h2 class="text-lg font-semibold mb-4">Input Image</h2>
 
-        <label class="flex-1 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-indigo-500">
-            <span class="text-slate-400">Click to upload image</span>
+        <label class="flex-1 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden">
+            <span id="inputText" class="text-slate-400">Click to upload image</span>
+            <img id="inputPreview" class="hidden max-h-full max-w-full object-contain">
             <input id="fileInput" type="file" accept="image/*" class="hidden">
         </label>
 
@@ -35,8 +36,8 @@
     <section class="bg-slate-800 rounded-xl p-6 flex flex-col">
         <h2 class="text-lg font-semibold mb-4">Detection Result</h2>
 
-        <div class="flex-1 bg-black rounded-lg flex items-center justify-center">
-            <span id="placeholder" class="text-slate-500">Waiting for image...</span>
+        <div class="flex-1 bg-black rounded-lg flex items-center justify-center overflow-hidden">
+            <span id="placeholder" class="text-slate-500">Waiting for detection...</span>
             <img id="preview" class="hidden max-h-full max-w-full object-contain">
         </div>
 
@@ -57,11 +58,31 @@
 <script>
 const fileInput = document.getElementById("fileInput");
 const runBtn = document.getElementById("runBtn");
+
+const inputPreview = document.getElementById("inputPreview");
+const inputText = document.getElementById("inputText");
+
 const preview = document.getElementById("preview");
 const placeholder = document.getElementById("placeholder");
+
 const confScore = document.getElementById("confScore");
 const objCount = document.getElementById("objCount");
 
+// 🔹 SHOW INPUT IMAGE IMMEDIATELY
+fileInput.onchange = () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        inputPreview.src = reader.result;
+        inputPreview.classList.remove("hidden");
+        inputText.classList.add("hidden");
+    };
+    reader.readAsDataURL(file);
+};
+
+// 🔹 RUN DETECTION
 runBtn.onclick = async () => {
     if (!fileInput.files.length) {
         alert("Please upload an image first");
