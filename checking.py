@@ -1,27 +1,18 @@
-from flask import Flask, request, jsonify, send_file, render_template
+from flask import Flask, request, jsonify, render_template
 from ultralytics import YOLO
 import cv2
 import numpy as np
-import tempfile
-import os
+import base64
 
 app = Flask(__name__)
 
-# Load your trained YOLOv8 model
+# Load YOLOv8 model ONCE
 model = YOLO("best (2).pt")
 
-
-# =========================
-# HOME PAGE (UI)
-# =========================
 @app.route("/")
 def home():
     return render_template("app.html")
 
-
-# =========================
-# DETECTION API
-# =========================
 @app.route("/detect", methods=["POST"])
 def detect():
     if "image" not in request.files:
@@ -29,40 +20,30 @@ def detect():
 
     file = request.files["image"]
 
+    # Read image
     img_bytes = np.frombuffer(file.read(), np.uint8)
     img = cv2.imdecode(img_bytes, cv2.IMREAD_COLOR)
 
+    # Run detection
     results = model(img, conf=0.25)
     annotated = results[0].plot()
 
     boxes = results[0].boxes
     count = len(boxes)
-    avg_conf = float(boxes.conf.mean()) * 100 if count > 0 else 0
 
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
-    cv2.imwrite(temp_file.name, annotated)
+    avg_conf = 0
+    if count > 0:
+        avg_conf = float(boxes.conf.mean()) * 100
+
+    # Encode image to base64
+    _, buffer = cv2.imencode(".jpg", annotated)
+    img_base64 = base64.b64encode(buffer).decode("utf-8")
 
     return jsonify({
         "count": count,
         "confidence": round(avg_conf, 2),
-        "image_path": temp_file.name
+        "image": img_base64
     })
 
-
-# =========================
-# RETURN IMAGE
-# =========================
-@app.route("/image")
-def get_image():
-    path = request.args.get("path")
-    if not path or not os.path.exists(path):
-        return "Image not found", 404
-    return send_file(path, mimetype="image/jpeg")
-
-
-# =========================
-# RUN SERVER
-# =========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-
